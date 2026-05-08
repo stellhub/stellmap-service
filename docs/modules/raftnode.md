@@ -8,7 +8,7 @@
 
 它们不是三个彼此独立的时间参数，而是一套组合起来工作的机制。
 
-![Raft 时间线图](./tick-timeline.svg)
+![Raft 时间线图](../images/raftnode-tick-timeline.svg)
 
 ## 一句话理解
 

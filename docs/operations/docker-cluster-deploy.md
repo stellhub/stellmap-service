@@ -26,11 +26,11 @@
 
 相关文件如下：
 
-- [Dockerfile](/E:/PersonalCode/GoProject/stellmap/Dockerfile)
-- [deploy/docker-compose.cluster.yml](/E:/PersonalCode/GoProject/stellmap/deploy/docker-compose.cluster.yml)
-- [deploy/docker/stellmapd-node-1.toml](/E:/PersonalCode/GoProject/stellmap/deploy/docker/stellmapd-node-1.toml)
-- [deploy/docker/stellmapd-node-2.toml](/E:/PersonalCode/GoProject/stellmap/deploy/docker/stellmapd-node-2.toml)
-- [deploy/docker/stellmapd-node-3.toml](/E:/PersonalCode/GoProject/stellmap/deploy/docker/stellmapd-node-3.toml)
+- [Dockerfile](../../Dockerfile)
+- [deploy/docker-compose.cluster.yml](../../deploy/docker-compose.cluster.yml)
+- [deploy/docker/stellmapd-node-1.toml](../../deploy/docker/stellmapd-node-1.toml)
+- [deploy/docker/stellmapd-node-2.toml](../../deploy/docker/stellmapd-node-2.toml)
+- [deploy/docker/stellmapd-node-3.toml](../../deploy/docker/stellmapd-node-3.toml)
 
 ## 3. 启动前准备
 

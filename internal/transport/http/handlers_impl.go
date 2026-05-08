@@ -1181,6 +1181,11 @@ func (h *RegistryAPI) leaderHTTPAddr(leaderID uint64) string {
 		return ""
 	}
 	if leaderID == h.node.Status().NodeID {
+		if h.book != nil {
+			if addr := strings.TrimSpace(h.book.HTTPAddr(leaderID)); addr != "" {
+				return addr
+			}
+		}
 		return h.httpAddr
 	}
 
@@ -1483,7 +1488,7 @@ func deleteEmptyLabels(labels map[string]string) {
 func (h *RegistryAPI) selfPrometheusSDTargetGroups() []PrometheusSDTargetGroupDTO {
 	httpAddrs := h.book.SnapshotHTTP()
 	status := h.node.Status()
-	if currentAddr := strings.TrimSpace(h.httpAddr); currentAddr != "" {
+	if currentAddr := strings.TrimSpace(h.httpAddr); currentAddr != "" && strings.TrimSpace(httpAddrs[status.NodeID]) == "" {
 		httpAddrs[status.NodeID] = currentAddr
 	}
 
@@ -1537,6 +1542,11 @@ func (h *HealthAPI) leaderHTTPAddr(leaderID uint64) string {
 		return ""
 	}
 	if leaderID == h.node.Status().NodeID {
+		if h.book != nil {
+			if addr := strings.TrimSpace(h.book.HTTPAddr(leaderID)); addr != "" {
+				return addr
+			}
+		}
 		return h.httpAddr
 	}
 

@@ -4,7 +4,7 @@
 
 如果你希望使用 Docker / Docker Compose 部署，请参考：
 
-- [docs/docker-cluster-deploy.md](/E:/PersonalCode/GoProject/stellmap/docs/docker-cluster-deploy.md)
+- [Docker 集群部署指南](./docker-cluster-deploy.md)
 
 ## 1. 目标机最终文件
 
@@ -73,7 +73,7 @@ bash deploy/build.sh \
 
 默认配置文件是：
 
-- [config/stellmapd.toml](/E:/PersonalCode/GoProject/StellMap/config/stellmapd.toml)
+- [config/stellmapd.toml](../../config/stellmapd.toml)
 
 当前仓库里的这份默认配置已经改成“可直接启动的单机配置”，默认值包括：
 
@@ -98,7 +98,7 @@ bash deploy/build.sh \
 
 工作流文件：
 
-- [release-stellmapd.yml](/E:/PersonalCode/GoProject/StellMap/.github/workflows/release-stellmapd.yml)
+- [release-stellmapd.yml](../../.github/workflows/release-stellmapd.yml)
 
 工作流会：
 

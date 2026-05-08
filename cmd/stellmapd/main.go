@@ -123,7 +123,12 @@ func newServerApp(cfg daemonConfig) (*serverApp, error) {
 	}
 
 	book := runtime.NewAddressBook(httpAddrByID, grpcAddrByID, adminAddrByID)
-	book.Set(validated.NodeID, validated.HTTPAddr, validated.GRPCAddr, validated.AdminAddr)
+	book.Set(
+		validated.NodeID,
+		preferAdvertiseAddr(httpAddrByID, validated.NodeID, validated.HTTPAddr),
+		preferAdvertiseAddr(grpcAddrByID, validated.NodeID, validated.GRPCAddr),
+		preferAdvertiseAddr(adminAddrByID, validated.NodeID, validated.AdminAddr),
+	)
 
 	node, err := raftnode.New(raftnode.Config{
 		NodeID:    validated.NodeID,
@@ -231,4 +236,14 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 		Code:    code,
 		Message: message,
 	})
+}
+
+func preferAdvertiseAddr(addrs map[uint64]string, nodeID uint64, fallback string) string {
+	if addr, ok := addrs[nodeID]; ok {
+		addr = strings.TrimSpace(addr)
+		if addr != "" {
+			return addr
+		}
+	}
+	return strings.TrimSpace(fallback)
 }

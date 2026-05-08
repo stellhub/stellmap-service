@@ -31,6 +31,14 @@
 - 命名空间与分组隔离
 - 与治理、配置、控制面等模块的协作接口
 
+## 文档导航
+
+根目录仅保留当前 `README.md` 作为项目首页，详细设计、模块说明和运维文档统一沉淀在 [`docs/README.md`](docs/README.md)。
+
+- 架构设计：[`docs/design/`](docs/design/)
+- 模块说明：[`docs/modules/`](docs/modules/)
+- 部署运维：[`docs/operations/`](docs/operations/)
+
 ## 设计目标
 
 `StellMap` 的目标不是做一个“大而全”的配置/协调系统，而是做一个轻量级、高可用、高并发、强一致的注册中心。

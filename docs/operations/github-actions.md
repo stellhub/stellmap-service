@@ -2,7 +2,7 @@
 
 当前仓库的发布工作流是：
 
-- [release-stellmapd.yml](/E:/PersonalCode/GoProject/StellMap/.github/workflows/release-stellmapd.yml)
+- [release-stellmapd.yml](../../.github/workflows/release-stellmapd.yml)
 
 ## 1. 工作流会做什么
 
@@ -11,8 +11,8 @@
 1. 运行 `go test ./...`
 2. 构建 `stellmapd`
 3. 构建 `stellmapctl`
-4. 复制 [config/stellmapd.toml](/E:/PersonalCode/GoProject/StellMap/config/stellmapd.toml)
-5. 复制 [deploy/start.sh](/E:/PersonalCode/GoProject/StellMap/deploy/start.sh)
+4. 复制 [config/stellmapd.toml](../../config/stellmapd.toml)
+5. 复制 [deploy/start.sh](../../deploy/start.sh)
 6. 通过 SSH 把这 4 个文件上传到一台或多台 CVM 的 `/data` 目录
 
 上传后的目录结构如下：

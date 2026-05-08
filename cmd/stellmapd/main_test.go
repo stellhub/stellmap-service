@@ -967,6 +967,49 @@ func TestPrometheusSDReturnsServiceTargetsAndOptionalSelfTargets(t *testing.T) {
 	}
 }
 
+func TestPrometheusSDSelfTargetPrefersConfiguredPeerHTTPAddress(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	advertiseHTTPAddr := reserveTCPAddress(t)
+	listenHTTPAddr := wildcardListenAddress(t, advertiseHTTPAddr)
+	adminAddr := reserveTCPAddress(t)
+	grpcAddr := reserveTCPAddress(t)
+
+	app := mustNewTestApp(t, daemonConfig{
+		NodeID:            1,
+		ClusterID:         404,
+		DataDir:           filepath.Join(t.TempDir(), "node-1"),
+		HTTPAddr:          listenHTTPAddr,
+		AdminAddr:         adminAddr,
+		AdminToken:        testAdminToken,
+		ReplicationToken:  "test-replication-token",
+		PrometheusSDToken: "test-prometheus-sd-token",
+		GRPCAddr:          grpcAddr,
+		PeerHTTPAddrs:     "1=" + advertiseHTTPAddr,
+	})
+	if err := app.Start(ctx); err != nil {
+		t.Fatalf("start single node app: %v", err)
+	}
+	defer func() {
+		if err := app.Stop(context.Background()); err != nil {
+			t.Fatalf("stop app: %v", err)
+		}
+	}()
+
+	waitForClusterLeader(t, map[uint64]*serverApp{1: app}, 5*time.Second)
+
+	withSelf := waitForPrometheusSDTargets(t, "http://"+advertiseHTTPAddr+"/internal/v1/prometheus/sd?includeSelf=true", "test-prometheus-sd-token", 5*time.Second, func(items []httptransport.PrometheusSDTargetGroupDTO) bool {
+		return len(items) == 1
+	})
+	if len(withSelf) != 1 {
+		t.Fatalf("expected one self target, got %+v", withSelf)
+	}
+	if len(withSelf[0].Targets) != 1 || withSelf[0].Targets[0] != advertiseHTTPAddr {
+		t.Fatalf("unexpected self target: %+v", withSelf[0])
+	}
+}
+
 func TestPrometheusSDRequiresToken(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -1730,4 +1773,14 @@ func reserveTCPAddress(t *testing.T) string {
 	defer listener.Close()
 
 	return listener.Addr().String()
+}
+
+func wildcardListenAddress(t *testing.T, addr string) string {
+	t.Helper()
+
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		t.Fatalf("split host port failed: %v", err)
+	}
+	return net.JoinHostPort("0.0.0.0", port)
 }
