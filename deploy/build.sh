@@ -42,7 +42,7 @@ require_cmd() {
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OUTPUT_DIR="${REPO_ROOT}/dist/release"
+OUTPUT_DIR="${REPO_ROOT}/release"
 GOOS="linux"
 GOARCH="amd64"
 GO_BIN="go"

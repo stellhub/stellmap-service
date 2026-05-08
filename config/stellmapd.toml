@@ -2,10 +2,10 @@
 id = 1
 cluster_id = 100
 region = "default"
-data_dir = "/var/lib/stellmap/node-1"
+data_dir = "/data/stellmap/node"
 
 [server]
-http_addr = "127.0.0.1:8080"
+http_addr = "0.0.0.0:8080"
 admin_addr = "127.0.0.1:18080"
 grpc_addr = "127.0.0.1:19090"
 
