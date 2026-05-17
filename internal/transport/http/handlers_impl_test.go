@@ -1165,6 +1165,50 @@ func TestWatchInstancesReturnsRevisionExpiredWhenHistoryIsInsufficientWithoutSna
 	}
 }
 
+func TestWatchInstancesSendsPingWhenSubscribedTargetIsIdle(t *testing.T) {
+	service := "company.trade.order.order-center.api"
+	handler := &RegistryAPI{
+		node:              &fakeRegistryNode{},
+		watchHub:          registry.NewWatchHub(),
+		requestTimout:     time.Second,
+		watchPingInterval: 10 * time.Millisecond,
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(handler.WatchInstances))
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		server.URL+"?namespace=prod&service="+url.QueryEscape(service)+"&includeSnapshot=false",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("expected request creation success: %v", err)
+	}
+
+	response, err := server.Client().Do(request)
+	if err != nil {
+		t.Fatalf("expected watch request success: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.StatusCode)
+	}
+
+	reader := bufio.NewReader(response.Body)
+	if comment := readSSEComment(t, reader); comment != "ping" {
+		t.Fatalf("expected initial ping comment, got %q", comment)
+	}
+	if comment := readSSEComment(t, reader); comment != "ping" {
+		t.Fatalf("expected periodic ping comment, got %q", comment)
+	}
+}
+
 func readSSEEvent(t *testing.T, body io.ReadCloser) (string, string, string) {
 	t.Helper()
 
@@ -1198,6 +1242,27 @@ func readSSEEvent(t *testing.T, body io.ReadCloser) (string, string, string) {
 	}
 
 	return eventID, eventName, strings.Join(dataLines, "\n")
+}
+
+func readSSEComment(t *testing.T, reader *bufio.Reader) string {
+	t.Helper()
+
+	comment := ""
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			t.Fatalf("expected SSE comment line: %v", err)
+		}
+		line = strings.TrimRight(line, "\r\n")
+		if line == "" {
+			return comment
+		}
+		if strings.HasPrefix(line, ":") {
+			comment = strings.TrimSpace(strings.TrimPrefix(line, ":"))
+			continue
+		}
+		t.Fatalf("expected SSE comment line, got %q", line)
+	}
 }
 
 func mustRegistryKV(t *testing.T, value registry.Value) storage.KV {

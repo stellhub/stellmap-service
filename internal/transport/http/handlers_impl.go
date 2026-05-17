@@ -20,18 +20,21 @@ import (
 	"github.com/stellhub/stellmap/internal/storage"
 )
 
+const defaultWatchPingInterval = 15 * time.Second
+
 // RegistryAPI 实现对外 HTTP 数据面。
 type RegistryAPI struct {
-	node            registryNode
-	httpAddr        string
-	book            *runtime.AddressBook
-	watchHub        *registry.WatchHub
-	sourceRegion    string
-	sourceCluster   string
-	replicateAuth   string
-	promSDAuth      string
-	requestTimout   time.Duration
-	registryMetrics *internalmetrics.RegistryMetrics
+	node              registryNode
+	httpAddr          string
+	book              *runtime.AddressBook
+	watchHub          *registry.WatchHub
+	sourceRegion      string
+	sourceCluster     string
+	replicateAuth     string
+	promSDAuth        string
+	requestTimout     time.Duration
+	registryMetrics   *internalmetrics.RegistryMetrics
+	watchPingInterval time.Duration
 }
 
 type registryNode interface {
@@ -434,6 +437,7 @@ func (h *RegistryAPI) WatchInstances(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 
 	currentRevision := sinceRevision
+	emittedInitialFrame := false
 	if sinceRevision > 0 && !exact && !includeSnapshot {
 		writeError(w, http.StatusGone, "revision_expired", "watch revision is no longer retained")
 		return
@@ -455,6 +459,7 @@ func (h *RegistryAPI) WatchInstances(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			currentRevision = snapshotRevision
+			emittedInitialFrame = true
 		}
 	} else {
 		for _, event := range replay {
@@ -466,21 +471,26 @@ func (h *RegistryAPI) WatchInstances(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			currentRevision = event.Revision
+			emittedInitialFrame = true
+		}
+	}
+	if !emittedInitialFrame {
+		if err := writeSSEPing(w, flusher); err != nil {
+			return
 		}
 	}
 
-	keepaliveTicker := time.NewTicker(30 * time.Second)
-	defer keepaliveTicker.Stop()
+	pingTicker := time.NewTicker(h.effectiveWatchPingInterval())
+	defer pingTicker.Stop()
 
 	for {
 		select {
 		case <-r.Context().Done():
 			return
-		case <-keepaliveTicker.C:
-			if _, err := io.WriteString(w, ": keepalive\n\n"); err != nil {
+		case <-pingTicker.C:
+			if err := writeSSEPing(w, flusher); err != nil {
 				return
 			}
-			flusher.Flush()
 		case event, ok := <-events:
 			if !ok {
 				return
@@ -543,6 +553,7 @@ func (h *RegistryAPI) WatchReplication(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 
 	currentRevision := sinceRevision
+	emittedInitialFrame := false
 	if sinceRevision == 0 || !exact {
 		snapshotItems, snapshotRevision, err := h.registryWatchSnapshot(r.Context(), query)
 		if err != nil {
@@ -563,6 +574,7 @@ func (h *RegistryAPI) WatchReplication(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		currentRevision = snapshotRevision
+		emittedInitialFrame = true
 	} else {
 		for _, event := range replay {
 			payload, emit := replicationWatchEventDTO(query, h.sourceRegion, h.sourceCluster, event)
@@ -573,21 +585,26 @@ func (h *RegistryAPI) WatchReplication(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			currentRevision = event.Revision
+			emittedInitialFrame = true
+		}
+	}
+	if !emittedInitialFrame {
+		if err := writeSSEPing(w, flusher); err != nil {
+			return
 		}
 	}
 
-	keepaliveTicker := time.NewTicker(30 * time.Second)
-	defer keepaliveTicker.Stop()
+	pingTicker := time.NewTicker(h.effectiveWatchPingInterval())
+	defer pingTicker.Stop()
 
 	for {
 		select {
 		case <-r.Context().Done():
 			return
-		case <-keepaliveTicker.C:
-			if _, err := io.WriteString(w, ": keepalive\n\n"); err != nil {
+		case <-pingTicker.C:
+			if err := writeSSEPing(w, flusher); err != nil {
 				return
 			}
-			flusher.Flush()
 		case event, ok := <-events:
 			if !ok {
 				return
@@ -1602,6 +1619,13 @@ func (h *RegistryAPI) trackWatchSessionMetrics(watchKind string, caller internal
 	return h.registryMetrics.TrackWatchSession(watchKind, caller, target)
 }
 
+func (h *RegistryAPI) effectiveWatchPingInterval() time.Duration {
+	if h != nil && h.watchPingInterval > 0 {
+		return h.watchPingInterval
+	}
+	return defaultWatchPingInterval
+}
+
 func registryIdentityFromRegisterInput(input registry.RegisterInput) internalmetrics.RegistryIdentity {
 	return internalmetrics.RegistryIdentity{
 		Namespace:        input.Namespace,
@@ -1775,6 +1799,14 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, revision uint64,
 		return err
 	}
 	if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
+		return err
+	}
+	flusher.Flush()
+	return nil
+}
+
+func writeSSEPing(w http.ResponseWriter, flusher http.Flusher) error {
+	if _, err := io.WriteString(w, ": ping\n\n"); err != nil {
 		return err
 	}
 	flusher.Flush()
