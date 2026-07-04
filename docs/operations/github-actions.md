@@ -2,7 +2,7 @@
 
 当前仓库的发布工作流是：
 
-- [release-stellmapd.yml](../../.github/workflows/release-stellmapd.yml)
+- [release-stellmapd.yml](../release/release-stellmapd.yml)
 
 ## 1. 工作流会做什么
 

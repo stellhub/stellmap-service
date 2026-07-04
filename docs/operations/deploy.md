@@ -98,7 +98,7 @@ bash deploy/build.sh \
 
 工作流文件：
 
-- [release-stellmapd.yml](../../.github/workflows/release-stellmapd.yml)
+- [release-stellmapd.yml](../release/release-stellmapd.yml)
 
 工作流会：
 
